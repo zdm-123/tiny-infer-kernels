@@ -1,0 +1,42 @@
+# Virtualenv lives one level up, at /home/zdm/project1/pytorch
+pytorch/
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Triton / compiler caches
+.triton/
+__triton_cache__/
+
+# Benchmark outputs
+docs/results/*.png
+docs/results/*.csv
+docs/results/*.json
+!docs/results/.gitkeep
+
+# CUDA installer leftover in this directory (several GB)
+*.deb
+*.pt
+*.pth
+*.bin
+*.safetensors
+hf_cache/
+.cache/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store

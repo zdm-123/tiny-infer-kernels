@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiny-infer-kernels"
+version = "0.1.0"
+description = "A personal Triton kernel library for LLM inference (RMSNorm, FlashAttention, decode, W8A16 GEMM)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "matplotlib>=3.8"]
+
+[tool.setuptools.packages.find]
+include = ["tiny_infer_kernels*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,6 @@
+# Core runtime is already installed in /home/zdm/project1/pytorch (PyTorch 2.14 + cu130 + Triton 3.8).
+# Activate first:  source /home/zdm/project1/pytorch/bin/activate
+#
+# Extra packages used by tests and optional plots:
+pytest>=8.0
+matplotlib>=3.8
