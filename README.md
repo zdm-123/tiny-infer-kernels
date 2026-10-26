@@ -1,12 +1,12 @@
 # tiny-infer-kernels
 
-面向 LLM 推理关键路径的 Triton 算子库。目标不是复现一遍官方教程，而是把「正确性 → 带宽/Roofline 分析 → 调优 → 接入推理」做成一个能在企业面试里讲清楚的项目。
+面向 LLM 推理关键路径的 Triton 算子库。
 
-当前进度：Module 1 到 Module 5 都已在 RTX 5070 上跑通。Module 5 是 Qwen2.5-0.5B 的结构（分组注意力、`rotate_half` RoPE、SwiGLU）。权重是随机的，还没有下载官方 checkpoint。
+当前进度：Module 1 到 Module 5 都已在 RTX 5070 上跑通。Module 5 是 Qwen2.5-0.5B 的结构（分组注意力、`rotate_half` RoPE、SwiGLU）。
 
 ## 这个仓库解决什么问题
 
-LLM 推理的时间主要花在几类算子上：RMSNorm、RoPE、FFN（含 SwiGLU）、Attention（prefill / decode）、量化 GEMM。PyTorch eager 会把这些拆成多次 HBM 往返；Triton 的价值是在 tile 级把它们融合成更少的 kernel，并在消费级 GPU 上把账算明白。
+LLM 推理的时间主要花在几类算子上：RMSNorm、RoPE、FFN（含 SwiGLU）、Attention（prefill / decode）、量化 GEMM。PyTorch eager 会把这些拆成多次 HBM 往返；Triton 的价值是在 tile 级把它们融合成更少的 kernel。
 
 ```
 x, weight  ──►  fused RMSNorm  ──►  y     (少一次中间结果写回)
@@ -154,13 +154,3 @@ Prefill 更慢，是因为每一层除了 attention 还有 RMSNorm、RoPE、SwiG
 
 长上下文上，少掉那 7 倍的 KV 读取后，decode attention 比旧路径快约 1.3–1.5 倍。短上下文仍按 query head 并行，避免 KV head 只有 2 个时 GPU 填不满。SDPA 还是更快，差在厂商 kernel 的调度，不在多读了一遍 cache。
 
-## 面试时怎么讲（现在就能讲的部分）
-
-1. **RMSNorm 是 memory-bound。** 融合后 HBM 流量约为读 x + 读 weight + 写 y。加速来自少写中间结果，不是多算 FLOPs。
-2. **Softmax 官方教程的 4x 账。** naive 约 `8MN+4M` 字节，fused 约 `2MN`。行太长时这块 SRAM 放不下，必须改成 online softmax —— 这就是 FlashAttention 要做的事。
-3. **正确性优先于速度。** 每个 kernel 都先对 PyTorch 参考做 `allclose`，再报 GB/s。
-4. **知道边界。** 消费卡没有 Hopper 的 TMA / warp specialization。Flash-Decoding 只在 batch×head 填不满 GPU 时有用。W8A16 只在小 M、权重带宽主导时有用。
-5. **Decode 的并行度。** q_len=1 时 prefill kernel 的 grid 只有 batch×head。沿 KV 切分，每个 split 交回 `(m, l, acc)`，再按全局 max 重标。归并时 `acc` 还没除过 `l`，不能再乘一次 `l`。
-6. **整网不要只报一个加速比。** Qwen2.5-0.5B 深度上，prefill 目前慢于 eager，decode 大约 1.6 倍。分组注意力在长上下文里按 KV head 读一次 cache，4096 token 时比复制 KV 快约 1.3 倍。
-
-学习顺序和每周自测见 [docs/LEARNING.md](docs/LEARNING.md)。
